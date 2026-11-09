@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Express + Mongo CRUD</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    form { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.5rem; }
+    input, textarea, button { padding: .5rem; font: inherit; }
+    li { border: 1px solid #ccc; border-radius: 6px; padding: .75rem; margin-bottom: .5rem; list-style: none; }
+    ul { padding: 0; }
+    .actions { margin-top: .5rem; display: flex; gap: .5rem; }
+  </style>
+</head>
+<body>
+  <h1>Kayıtlar</h1>
+  <form id="form">
+    <input type="hidden" id="id" />
+    <input id="title" placeholder="Başlık" required />
+    <textarea id="description" placeholder="Açıklama"></textarea>
+    <button type="submit" id="submitBtn">Ekle</button>
+  </form>
+  <ul id="list"></ul>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const api = "/api/items";
+
+    async function load() {
+      const items = await (await fetch(api)).json();
+      $("list").innerHTML = "";
+      items.forEach((it) => {
+        const li = document.createElement("li");
+        const h = document.createElement("strong");
+        h.textContent = it.title;
+        const p = document.createElement("p");
+        p.textContent = it.description;
+        const actions = document.createElement("div");
+        actions.className = "actions";
+
+        const edit = document.createElement("button");
+        edit.textContent = "Düzenle";
+        edit.onclick = () => {
+          $("id").value = it._id;
+          $("title").value = it.title;
+          $("description").value = it.description;
+          $("submitBtn").textContent = "Güncelle";
+        };
+
+        const del = document.createElement("button");
+        del.textContent = "Sil";
+        del.onclick = async () => {
+          await fetch(`${api}/${it._id}`, { method: "DELETE" });
+          load();
+        };
+
+        actions.append(edit, del);
+        li.append(h, p, actions);
+        $("list").append(li);
+      });
+    }
+
+    $("form").onsubmit = async (e) => {
+      e.preventDefault();
+      const body = JSON.stringify({
+        title: $("title").value,
+        description: $("description").value,
+      });
+      const id = $("id").value;
+      await fetch(id ? `${api}/${id}` : api, {
+        method: id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      $("form").reset();
+      $("id").value = "";
+      $("submitBtn").textContent = "Ekle";
+      load();
+    };
+
+    load();
+  </script>
+</body>
+</html>
